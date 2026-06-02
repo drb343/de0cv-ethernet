@@ -97,6 +97,23 @@ assign tx_en = (state != IDLE);
 
 always @(*) begin
 	case (state)
+		PREAMBLE: txd = (counter == 28) 2'b11 : 2'b10;
+	
+		PAYLOAD: begin
+			if (counter % 4 == 0) begin
+				txd = data_in[1:0];
+			end else if (counter % 4 == 1) begin
+				txd = data_in[3:2];
+			end else if (counter % 4 == 2) begin
+				txd = data_in[5:4];
+			end else begin
+				txd = data_in[7:6];
+			end
+			
+		end
+		defaut: begin
+			txd = 2'b00;
+		end 
 	
 	
 	end 
