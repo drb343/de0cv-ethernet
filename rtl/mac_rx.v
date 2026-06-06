@@ -21,7 +21,7 @@ reg [2:0] state;
 
 //crc register
 wire valid;
-reg [31:0] crc;
+wire [31:0] crc;
 
 always @(posedge clk) begin
 	if (rst) begin
