@@ -7,8 +7,8 @@ module fpga (
 
     // RMII pins
     output wire        RMII_REF_CLK,
-    output wire        RMII_TXD0,
-    output wire        RMII_TXD1,
+    output wire         RMII_TXD0,
+    output wire         RMII_TXD1,
     output wire        RMII_TXEN,
     input  wire        RMII_RXD0,
     input  wire        RMII_RXD1,
@@ -23,9 +23,18 @@ module fpga (
 // feed 50MHz clock to LAN8720
 assign RMII_REF_CLK = CLOCK_50;
 
+// regs and wire to feed RMII_TX
+wire RMII_TXEN_dummy;
+wire [1:0] RMII_TXD_vector;
+
+//reg for start counter
+reg [15:0] ifg_counter = 0;
+reg start_reg = 0;
+
 // hold reset high for 255 cycles on power up
 reg [7:0] reset_cnt = 8'hFF;
 wire rst = (reset_cnt != 8'd0);
+wire ready_signal;
 
 always @(posedge CLOCK_50) begin
     if (reset_cnt != 8'd0)
@@ -115,15 +124,44 @@ always @(posedge CLOCK_50) begin
     end
 end
 
+//Allow the PHY layer time to set up before sending start
+always @(posedge CLOCK_50) begin
+    if (ready_signal) begin
+        if (ifg_counter == 16'd4800) begin  // 96 Useconds
+            start_reg <= 1;
+            ifg_counter <= 0;
+        end else begin
+            ifg_counter <= ifg_counter + 1;
+            start_reg <= 0;
+        end
+    end
+end
+
+
+mac_tx u_mac_tx (
+	.clk(CLOCK_50),
+	.rst(rst),
+	.dst_mac(48'h),
+	.src_mac(48'h02_00_00_00_00_01),
+	.ethertype(16'hABF9),
+	.data_in(8'hAA),
+	.length(12'd64),
+	.start(start_reg),
+	.ready(ready_signal),
+	.txd(RMII_TXD_vector),
+	.tx_en(RMII_TXEN_dummy)
+);
+
+
 // LEDR0 on = link up
 assign LEDR[0]   = link_up;
-assign LEDR[9:1] = 9'd0;
+assign LEDR[1]   = RMII_TXEN_dummy;
+assign LEDR[9:2] = 8'd0;
 
 // TX not used yet
-assign RMII_TXD0 = 1'b0;
-assign RMII_TXD1 = 1'b0;
-assign RMII_TXEN = 1'b0;
-
+assign RMII_TXD0 = RMII_TXD_vector[0];
+assign RMII_TXD1 = RMII_TXD_vector[1];
+assign RMII_TXEN = RMII_TXEN_dummy;
 endmodule
 
 `resetall
