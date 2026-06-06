@@ -15,7 +15,7 @@ module mac_tx (
 	input wire [11:0] length,
 	input wire start,
 	output wire ready, //ready to receive information - RMII
-	output wire [1:0] txd,
+	output reg [1:0] txd,
 	output wire tx_en //active when sending a frame
 
 );
@@ -27,7 +27,13 @@ parameter IDLE = 0, PREAMBLE = 1, DST = 2, SRC = 3, ETHERTYPE = 4, PAYLOAD = 5,
 //re-usable state counter			 
 reg [13:0] counter;
 reg [2:0] state;
+
+//instantiate crc32
+wire valid;
+wire [31:0] crc;
 			 
+			 
+//state machine
 always @(posedge clk) begin
   if (rst) begin
     state <= IDLE;
@@ -41,7 +47,7 @@ always @(posedge clk) begin
         end
       end
       PREAMBLE: begin
-        if (counter == 31) begin
+        if (counter == 63) begin
           state <= DST;
           counter <= 0;
         end else begin
@@ -65,7 +71,7 @@ always @(posedge clk) begin
         end
       end
       ETHERTYPE: begin
-        if (counter == 3) begin
+        if (counter == 7) begin
           state <= PAYLOAD;
           counter <= 0;
         end else begin
@@ -73,7 +79,7 @@ always @(posedge clk) begin
         end
       end
       PAYLOAD: begin
-        if (counter == (PAYLOAD_LEN * 4) - 1) begin
+        if (counter == (length * 4) - 1) begin
           state <= CRC;
           counter <= 0;
         end else begin
@@ -95,26 +101,46 @@ end
 assign ready = (state == IDLE);	
 assign tx_en = (state != IDLE);
 
+crc32 u_crc32(
+	.clk(clk),
+	.rst(rst),
+	.valid(valid),
+	.dibit(txd),
+	.crc_register(crc)
+);
+
+assign valid = (state == DST) || (state == SRC) || (state == ETHERTYPE) || (state == PAYLOAD);
+
+
+//adjust txd output based on state
 always @(*) begin
-	case (state)
-		PREAMBLE: txd = (counter == 28) 2'b11 : 2'b10;
-	
-		PAYLOAD: begin
-			if (counter % 4 == 0) begin
-				txd = data_in[1:0];
-			end else if (counter % 4 == 1) begin
-				txd = data_in[3:2];
-			end else if (counter % 4 == 2) begin
-				txd = data_in[5:4];
-			end else begin
-				txd = data_in[7:6];
-			end
-			
-		end
-		defaut: begin
-			txd = 2'b00;
-		end 
-	
-	
-	end 
-end 
+  case (state)
+    PREAMBLE: txd = (counter == 63) ? 2'b11 : 2'b01;
+
+    DST: txd = dst_mac[((5 - counter/4)*8) + ((counter%4)*2) +: 2];
+
+    SRC: txd = src_mac[((5 - counter/4)*8) + ((counter%4)*2) +: 2];
+
+    ETHERTYPE: txd = ethertype[((1 - counter/4)*8) + ((counter%4)*2) +: 2];
+
+    PAYLOAD: begin
+      if (counter % 4 == 0)
+        txd = data_in[1:0];
+      else if (counter % 4 == 1)
+        txd = data_in[3:2];
+      else if (counter % 4 == 2)
+        txd = data_in[5:4];
+      else
+        txd = data_in[7:6];
+    end
+
+    CRC: txd = ~crc[(counter*2) +: 2];
+
+    default: txd = 2'b00;
+
+  endcase
+end
+
+endmodule
+
+`resetall
