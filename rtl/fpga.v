@@ -7,8 +7,8 @@ module fpga (
 
     // RMII pins
     output wire        RMII_REF_CLK,
-    output wire         RMII_TXD0,
-    output wire         RMII_TXD1,
+    output wire        RMII_TXD0,
+    output wire        RMII_TXD1,
     output wire        RMII_TXEN,
     input  wire        RMII_RXD0,
     input  wire        RMII_RXD1,
@@ -27,6 +27,16 @@ assign RMII_REF_CLK = CLOCK_50;
 wire RMII_TXEN_dummy;
 wire [1:0] RMII_TXD_vector;
 
+//regs to feed RMII_RX
+wire [1:0] RMII_RXD_vector;
+ 
+assign RMII_RXD_vector[0] = RMII_RXD0;
+assign RMII_RXD_vector[1] = RMII_RXD1;
+
+wire data_valid_signal;
+
+wire [511:0] data_rx; //data_out used in later logic
+
 //reg for start counter
 reg [15:0] ifg_counter = 0;
 reg start_reg = 0;
@@ -35,6 +45,7 @@ reg start_reg = 0;
 reg [7:0] reset_cnt = 8'hFF;
 wire rst = (reset_cnt != 8'd0);
 wire ready_signal;
+
 
 always @(posedge CLOCK_50) begin
     if (reset_cnt != 8'd0)
@@ -152,16 +163,29 @@ mac_tx u_mac_tx (
 	.tx_en(RMII_TXEN_dummy)
 );
 
+mac_rx u_mac_rx(
+	.clk(CLOCK_50),
+	.rst(rst),
+	.CRS_DV(RMII_CRS_DV),
+	.length(12'd64),
+	.rxd(RMII_RXD_vector),
+	.data_valid(data_valid_signal),
+	.data_out(data_rx)
+
+);
 
 // LEDR0 on = link up
 assign LEDR[0]   = link_up;
 assign LEDR[1]   = RMII_TXEN_dummy;
-assign LEDR[9:2] = 8'd0;
+assign LEDR[8:2] = 8'd0;
+assign LEDR[9] = data_valid_signal;
 
-// TX not used yet
+// TX
 assign RMII_TXD0 = RMII_TXD_vector[0];
 assign RMII_TXD1 = RMII_TXD_vector[1];
 assign RMII_TXEN = RMII_TXEN_dummy;
+
+
 endmodule
 
 `resetall
