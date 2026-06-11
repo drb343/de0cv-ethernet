@@ -23,6 +23,10 @@ reg [2:0] state;
 wire valid;
 wire [31:0] crc;
 
+//data valid reg
+reg data_valid_reg;
+assign data_valid = data_valid_reg;
+
 always @(posedge clk) begin
 	if (rst) begin
 		state <= IDLE;
@@ -30,7 +34,10 @@ always @(posedge clk) begin
 	
 	end else begin
 		case(state)
-			IDLE: state <= (CRS_DV) ? PREAMBLE : IDLE;
+			IDLE: begin
+				data_valid_reg <= 0;
+				state <= (CRS_DV) ? PREAMBLE : IDLE;
+			end
 			PREAMBLE: begin
 				if (rxd == 2'b11) begin
 					state <= WAITING;
@@ -40,7 +47,10 @@ always @(posedge clk) begin
 			
 			end
 			WAITING: begin //wait for the DST,SRC,ETHERTYPE bytes to pass
-				if (counter == 55) begin
+				if (!CRS_DV) begin
+					state <= IDLE;
+					counter <= 0;
+				end else if (counter == 55) begin
 					state <= PAYLOAD;
 					counter <= 0;
 				end else begin
@@ -49,7 +59,10 @@ always @(posedge clk) begin
 			
 			end 
 			PAYLOAD: begin
-				if (counter == (4 * length) - 1) begin
+				if (!CRS_DV) begin
+					state <= IDLE;
+					counter <= 0;
+				end else if (counter == (4 * length) - 1) begin
 					state <= CRC;
 					counter <= 0;
 				end else begin
@@ -58,12 +71,14 @@ always @(posedge clk) begin
 			
 			end
 			CRC: begin
-			  if (counter == 15) begin
-				 state <= IDLE;
-				 counter <= 0;
-			  end else begin
-				 counter <= counter + 1;
-			  end
+				 if (counter == 15) begin
+					  state <= IDLE;
+					  counter <= 0;
+					  data_valid_reg <= (crc ^ 32'hFFFFFFFF == 32'hDEBB20E3);
+				 end else begin
+					  counter <= counter + 1;
+					  data_valid_reg <= 0;
+				 end
 			end
 		
 		endcase
@@ -83,15 +98,13 @@ crc32 u_crc32(
 assign valid = (state == PREAMBLE) || (state == WAITING) || (state == PAYLOAD);
 
 always @(posedge clk) begin
-	if (data_valid) begin
+	if (state == PAYLOAD) begin
 		data_out <= (data_out << 2) | rxd;
 	end else begin
-		data_out <= 9'd0;
+		data_out <= 512'd0;
 	end
 	
 end
-
-assign data_valid = (crc ^ 32'hFFFFFFFF == 32'hDEBB20E3);
 
 
 endmodule

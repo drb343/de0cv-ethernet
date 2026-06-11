@@ -17,7 +17,13 @@ module fpga (
     output wire        RMII_MDC,
 
     // LEDs
-    output wire [9:0]  LEDR
+    output wire [9:0]  LEDR,
+	 
+	 //HEX
+	 output [6:0] HEX0,
+	 output [6:0] HEX1,
+	 output [6:0] HEX2,
+	 output [6:0] HEX3
 );
 
 // feed 50MHz clock to LAN8720
@@ -37,6 +43,8 @@ wire data_valid_signal;
 
 wire [511:0] data_rx; //data_out used in later logic
 
+reg [511:0] data_rx_latch; //used to latch received data
+
 //reg for start counter
 reg [15:0] ifg_counter = 0;
 reg start_reg = 0;
@@ -45,6 +53,29 @@ reg start_reg = 0;
 reg [7:0] reset_cnt = 8'hFF;
 wire rst = (reset_cnt != 8'd0);
 wire ready_signal;
+
+//Function to view incoming payloads
+function [6:0] hex_decode;
+    input [3:0] nibble;
+    case (nibble)
+        4'h0: hex_decode = 7'b1000000;
+        4'h1: hex_decode = 7'b1111001;
+        4'h2: hex_decode = 7'b0100100;
+        4'h3: hex_decode = 7'b0110000;
+        4'h4: hex_decode = 7'b0011001;
+        4'h5: hex_decode = 7'b0010010;
+        4'h6: hex_decode = 7'b0000010;
+        4'h7: hex_decode = 7'b1111000;
+        4'h8: hex_decode = 7'b0000000;
+        4'h9: hex_decode = 7'b0010000;
+        4'hA: hex_decode = 7'b0001000;
+        4'hB: hex_decode = 7'b0000011;
+        4'hC: hex_decode = 7'b1000110;
+        4'hD: hex_decode = 7'b0100001;
+        4'hE: hex_decode = 7'b0000110;
+        4'hF: hex_decode = 7'b0001110;
+    endcase
+endfunction
 
 
 always @(posedge CLOCK_50) begin
@@ -184,6 +215,20 @@ assign LEDR[9] = data_valid_signal;
 assign RMII_TXD0 = RMII_TXD_vector[0];
 assign RMII_TXD1 = RMII_TXD_vector[1];
 assign RMII_TXEN = RMII_TXEN_dummy;
+
+//latch signal
+always @(posedge CLOCK_50) begin
+	if (data_valid_signal) begin
+		data_rx_latch <= data_rx;
+	end 
+
+end 
+
+//View data_out
+assign HEX0 = hex_decode(data_rx_latch[511:508]); 
+assign HEX1 = hex_decode(data_rx_latch[507:504]);
+assign HEX2 = hex_decode(data_rx_latch[503:500]); 
+assign HEX3 = hex_decode(data_rx_latch[499:496]); 
 
 
 endmodule
