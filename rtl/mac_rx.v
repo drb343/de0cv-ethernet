@@ -39,18 +39,15 @@ always @(posedge clk) begin
 				data_valid_reg <= 0;
 			end
 			PREAMBLE: begin
-				if (rxd == 2'b11) begin
-					state <= PAYLOAD;
-				end else begin
-					state <= PREAMBLE;
-				end
-			
+				 if (rxd == 2'b11) begin
+					  state <= PAYLOAD;
+				 end
 			end
 			PAYLOAD: begin
-				 if (!CRS_DV) begin 
-					  state <= IDLE;
-					  data_valid_reg <= (crc ^ 32'hFFFFFFFF == 32'hDEBB20E3); //Calculate CRC for 
-				 end
+				if (!CRS_DV) begin 
+				  state <= IDLE;
+				  data_valid_reg <= (crc ^ 32'hFFFFFFFF == 32'hDEBB20E3); //Calculate CRC for 
+				end
 			end
 			default: begin
 				state <= IDLE;
@@ -76,7 +73,7 @@ assign valid = (state == PAYLOAD);
 always @(posedge clk) begin
     if (state == PAYLOAD)
         data_out <= (data_out << 2) | rxd;
-    else if (state == IDLE)
+    else if (state == PREAMBLE)
         data_out <= 512'd0;
 end
 endmodule
