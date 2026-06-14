@@ -1,7 +1,6 @@
 `resetall
 `timescale 1ns/1ps
 `default_nettype none
-
 module mac_rx (
 	input clk,
 	input rst,
@@ -10,23 +9,17 @@ module mac_rx (
 	input [1:0] rxd,
 	output data_valid,
 	output reg [511:0] data_out
-
 );
-
 parameter IDLE = 0, PREAMBLE = 1, WAITING = 2, PAYLOAD = 3, CRC = 4;
-
 //re-usable state counter			 
 reg [13:0] counter;
 reg [2:0] state;
-
 //crc register
 wire valid;
 wire [31:0] crc;
-
 //data valid reg
 reg data_valid_reg;
 assign data_valid = data_valid_reg;
-
 always @(posedge clk) begin
 	if (rst) begin
 		state <= IDLE;
@@ -35,8 +28,8 @@ always @(posedge clk) begin
 	end else begin
 		case(state)
 			IDLE: begin
-				data_valid_reg <= 0;
 				state <= (CRS_DV) ? PREAMBLE : IDLE;
+				data_valid_reg <= 0;
 			end
 			PREAMBLE: begin
 				if (rxd == 2'b11) begin
@@ -46,11 +39,8 @@ always @(posedge clk) begin
 				end
 			
 			end
-			WAITING: begin //wait for the DST,SRC,ETHERTYPE bytes to pass
-				if (!CRS_DV) begin
-					state <= IDLE;
-					counter <= 0;
-				end else if (counter == 55) begin
+			WAITING: begin
+				if (counter == 55) begin
 					state <= PAYLOAD;
 					counter <= 0;
 				end else begin
@@ -59,10 +49,7 @@ always @(posedge clk) begin
 			
 			end 
 			PAYLOAD: begin
-				if (!CRS_DV) begin
-					state <= IDLE;
-					counter <= 0;
-				end else if (counter == (4 * length) - 1) begin
+				if (counter == (4 * length) - 1) begin
 					state <= CRC;
 					counter <= 0;
 				end else begin
@@ -84,9 +71,7 @@ always @(posedge clk) begin
 		endcase
 	
 	end
-
 end
-
 crc32 u_crc32(
 	.clk(clk),
 	.rst(rst),
@@ -94,19 +79,12 @@ crc32 u_crc32(
 	.dibit(rxd),
 	.crc_register(crc)
 );
-
-assign valid = (state == PREAMBLE) || (state == WAITING) || (state == PAYLOAD);
-
+assign valid = (state == WAITING) || (state == PAYLOAD) || (state == CRC);
 always @(posedge clk) begin
-	if (state == PAYLOAD) begin
-		data_out <= (data_out << 2) | rxd;
-	end else begin
-		data_out <= 512'd0;
-	end
-	
+    if (state == PAYLOAD)
+        data_out <= (data_out << 2) | rxd;
+    else if (state == IDLE)
+        data_out <= 512'd0;
 end
-
-
 endmodule
-
 `resetall
