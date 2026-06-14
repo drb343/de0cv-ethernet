@@ -10,21 +10,28 @@ module mac_rx (
 	output data_valid,
 	output reg [511:0] data_out
 );
-parameter IDLE = 0, PREAMBLE = 1, WAITING = 2, PAYLOAD = 3, CRC = 4;
+
+parameter IDLE = 0, PREAMBLE = 1, PAYLOAD = 2;
+
 //re-usable state counter			 
-reg [13:0] counter;
-reg [2:0] state;
+//reg [13:0] counter;
+reg [2:0] state = IDLE;
+
 //crc register
 wire valid;
 wire [31:0] crc;
+wire clear;
+
 //data valid reg
 reg data_valid_reg;
 assign data_valid = data_valid_reg;
+
+
 always @(posedge clk) begin
 	if (rst) begin
 		state <= IDLE;
-		counter <= 0;
-	
+		//counter <= 0;
+		data_valid_reg <= 0;
 	end else begin
 		case(state)
 			IDLE: begin
@@ -33,53 +40,39 @@ always @(posedge clk) begin
 			end
 			PREAMBLE: begin
 				if (rxd == 2'b11) begin
-					state <= WAITING;
+					state <= PAYLOAD;
 				end else begin
 					state <= PREAMBLE;
 				end
 			
 			end
-			WAITING: begin
-				if (counter == 55) begin
-					state <= PAYLOAD;
-					counter <= 0;
-				end else begin
-					counter <= counter + 1;
-				end
-			
-			end 
 			PAYLOAD: begin
-				if (counter == (4 * length) - 1) begin
-					state <= CRC;
-					counter <= 0;
-				end else begin
-					counter <= counter + 1;
-				end 
-			
-			end
-			CRC: begin
-				 if (counter == 15) begin
+				 if (!CRS_DV) begin 
 					  state <= IDLE;
-					  counter <= 0;
-					  data_valid_reg <= (crc ^ 32'hFFFFFFFF == 32'hDEBB20E3);
-				 end else begin
-					  counter <= counter + 1;
-					  data_valid_reg <= 0;
+					  data_valid_reg <= (crc ^ 32'hFFFFFFFF == 32'hDEBB20E3); //Calculate CRC for 
 				 end
 			end
-		
+			default: begin
+				state <= IDLE;
+			end
 		endcase
 	
 	end
 end
+
+assign clear = (state == IDLE) || (state == PREAMBLE); 
+
 crc32 u_crc32(
 	.clk(clk),
 	.rst(rst),
 	.valid(valid),
 	.dibit(rxd),
+	.clear(clear),
 	.crc_register(crc)
 );
-assign valid = (state == WAITING) || (state == PAYLOAD) || (state == CRC);
+assign valid = (state == PAYLOAD);
+
+
 always @(posedge clk) begin
     if (state == PAYLOAD)
         data_out <= (data_out << 2) | rxd;
