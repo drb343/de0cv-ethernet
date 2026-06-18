@@ -3,10 +3,10 @@
 `default_nettype none
 
 module itch_parser(
-	input clk,
-	input rst,
-	input [511:0] data_in,
-	input data_valid,
+	input wire clk,
+	input wire rst,
+	input wire [511:0] data_in,
+	input wire data_valid,
 	output reg [1:0] signal
 );
 
