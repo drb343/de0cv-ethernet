@@ -26,8 +26,6 @@ reg [31:0] price_reg;
 
 reg [63:0] stock;
 
-reg [511:0] data_in_latch;
-
 reg [31:0] bbo_price_buy;
 
 reg [31:0] bbo_price_sell;
@@ -37,23 +35,18 @@ reg data_valid_d;
 
 always @(posedge clk) begin
 	if (rst) begin
-		data_in_latch <= 512'd0;
 		bbo_price_buy <= 32'd0;
 		bbo_price_sell <= 32'hFFFFFFFF;
-	end else if (data_valid) begin
-		data_in_latch <= data_in;
-		
-	end 
-
+	end
 end
 
 //decode the data_in
 always @(*) begin
-	msg_type = data_in_latch[511:504];
-	side_reg = data_in_latch[503:496];
-	shares_reg = data_in_latch[495:464];
-	price_reg = data_in_latch[463:432];
-	stock = data_in_latch[431:368];
+	msg_type = data_in[511:504];
+	side_reg = data_in[503:496];
+	shares_reg = data_in[495:464];
+	price_reg = data_in[463:432];
+	stock = data_in[431:368];
 end
 
 //Best Bid Offer tracker
