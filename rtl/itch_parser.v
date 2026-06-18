@@ -32,6 +32,8 @@ reg [31:0] bbo_price_buy;
 
 reg [31:0] bbo_price_sell;
 
+reg data_valid_d;
+
 
 always @(posedge clk) begin
 	if (rst) begin
@@ -66,14 +68,23 @@ always @(posedge clk) begin
 
 end 
 
+always @(posedge clk) begin
+	data_valid_d <= data_valid;
+end
+
 //Decision point
 always @(posedge clk) begin
-	if (bbo_price_buy < TARGET_BUY) begin
-		signal <= BUY;
-	end else if (bbo_price_sell > TARGET_SELL) begin
-		signal <= SELL;
-	end else begin
+	if (rst) begin
 		signal <= HOLD;
+	end else if (data_valid_d) begin
+		if (bbo_price_buy < TARGET_BUY) begin
+			signal <= BUY;
+		end else if (bbo_price_sell > TARGET_SELL) begin
+			signal <= SELL;
+		end else begin
+			signal <= HOLD;
+		end
+	
 	end
 end
 
