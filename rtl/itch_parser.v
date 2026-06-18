@@ -39,7 +39,7 @@ always @(posedge clk) begin
 	if (rst) begin
 		data_in_latch <= 512'd0;
 		bbo_price_buy <= 32'd0;
-		bbo_price_sell <= 32'd0;
+		bbo_price_sell <= 32'hFFFFFFFF;
 	end else if (data_valid) begin
 		data_in_latch <= data_in;
 		
@@ -59,10 +59,10 @@ end
 //Best Bid Offer tracker
 always @(posedge clk) begin
 	//Message type Buy - ASCII
-	if (msg_type == 8'h42 && bbo_price_buy < price_reg) begin
+	if (side_reg == 8'h42 && bbo_price_buy < price_reg) begin
 		bbo_price_buy <= price_reg;
 	//Message type Sell - ASCII
-	end else if (msg_type == 8'h53 && bbo_price_sell > price_reg) begin
+	end else if (side_reg == 8'h53 && bbo_price_sell > price_reg) begin
 		bbo_price_sell <= price_reg;
 	end 
 
