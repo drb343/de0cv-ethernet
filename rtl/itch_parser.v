@@ -33,13 +33,6 @@ reg [31:0] bbo_price_sell;
 reg data_valid_d;
 
 
-always @(posedge clk) begin
-	if (rst) begin
-		bbo_price_buy <= 32'd0;
-		bbo_price_sell <= 32'hFFFFFFFF;
-	end
-end
-
 //decode the data_in
 always @(*) begin
 	msg_type = data_in[511:504];
@@ -51,15 +44,19 @@ end
 
 //Best Bid Offer tracker
 always @(posedge clk) begin
-	//Message type Buy - ASCII
-	if (side_reg == 8'h42 && bbo_price_buy < price_reg) begin
-		bbo_price_buy <= price_reg;
-	//Message type Sell - ASCII
-	end else if (side_reg == 8'h53 && bbo_price_sell > price_reg) begin
-		bbo_price_sell <= price_reg;
-	end 
-
-end 
+	if (rst) begin
+		bbo_price_buy <= 32'd0;
+		bbo_price_sell <= 32'hFFFFFFFF;
+	end else begin
+		//Message type Buy - ASCII
+		if (side_reg == 8'h42 && bbo_price_buy < price_reg) begin
+			bbo_price_buy <= price_reg;
+		//Message type Sell - ASCII
+		end else if (side_reg == 8'h53 && bbo_price_sell > price_reg) begin
+			bbo_price_sell <= price_reg;
+		end
+	end
+end
 
 always @(posedge clk) begin
 	data_valid_d <= data_valid;
