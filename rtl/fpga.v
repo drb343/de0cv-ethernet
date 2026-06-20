@@ -41,6 +41,8 @@ assign RMII_RXD_vector[1] = RMII_RXD1;
 
 wire data_valid_signal;
 
+wire [1:0] signal_reg;
+
 wire [511:0] data_rx; //data_out used in later logic
 
 reg [511:0] data_rx_latch; //used to latch received data
@@ -48,6 +50,7 @@ reg [511:0] data_rx_latch; //used to latch received data
 //reg for start counter
 reg [15:0] ifg_counter = 0;
 reg start_reg = 0;
+reg start;
 
 // hold reset high for 255 cycles on power up
 reg [7:0] reset_cnt = 8'hFF;
@@ -179,21 +182,6 @@ always @(posedge CLOCK_50) begin
     end
 end
 
-
-mac_tx u_mac_tx (
-	.clk(CLOCK_50),
-	.rst(rst),
-	.dst_mac(48'h),
-	.src_mac(48'h02_00_00_00_00_01),
-	.ethertype(16'hABF9),
-	.data_in(8'hAA),
-	.length(12'd64),
-	.start(start_reg),
-	.ready(ready_signal),
-	.txd(RMII_TXD_vector),
-	.tx_en(RMII_TXEN_dummy)
-);
-
 mac_rx u_mac_rx(
 	.clk(CLOCK_50),
 	.rst(rst),
@@ -205,10 +193,45 @@ mac_rx u_mac_rx(
 
 );
 
+itch_parser u_itch_parser(
+	.clk(CLOCK_50),
+	.rst(rst),
+	.data_in(data_rx),
+	.data_valid(data_valid_signal),
+	.signal(signal_reg)
+);
+
+//When signal is BUY or SELL, get ready to transmit
+always @(*) begin
+	if (signal_reg == 1 || signal_reg == 2) begin
+		start = 1;
+	end else begin
+		start = 0;
+	end 
+
+end 
+
+
+mac_tx u_mac_tx (
+	.clk(CLOCK_50),
+	.rst(rst),
+	.dst_mac(48'),
+	.src_mac(48'h02_00_00_00_00_01),
+	.ethertype(16'hABF9),
+	.data_in(signal_reg),
+	.length(12'd64),
+	.start(0), //change this to 1 when ready
+	.ready(ready_signal),
+	.txd(RMII_TXD_vector),
+	.tx_en(RMII_TXEN_dummy)
+);
+
 // LEDR0 on = link up
 assign LEDR[0]   = link_up;
 assign LEDR[1]   = RMII_TXEN_dummy;
-assign LEDR[8:2] = 8'd0;
+assign LEDR[8:4] = 8'd0;
+assign LEDR[2] = |RMII_RXD_vector;
+assign LEDR[3] = RMII_CRS_DV;
 assign LEDR[9] = data_valid_signal;
 
 // TX
