@@ -47,6 +47,8 @@ wire [511:0] data_rx; //data_out used in later logic
 
 reg [511:0] data_rx_latch; //used to latch received data
 
+reg data_valid_latched = 0; //used to latch data_valid signal
+
 //reg for start counter
 reg [15:0] ifg_counter = 0;
 reg start_reg = 0;
@@ -56,6 +58,9 @@ reg start;
 reg [7:0] reset_cnt = 8'hFF;
 wire rst = (reset_cnt != 8'd0);
 wire ready_signal;
+
+//debug state purposes
+wire [2:0] mac_state;
 
 //Function to view incoming payloads
 function [6:0] hex_decode;
@@ -189,8 +194,8 @@ mac_rx u_mac_rx(
 	.length(12'd64),
 	.rxd(RMII_RXD_vector),
 	.data_valid(data_valid_signal),
-	.data_out(data_rx)
-
+	.data_out(data_rx),
+	.state_out(mac_state)
 );
 
 itch_parser u_itch_parser(
@@ -215,7 +220,7 @@ end
 mac_tx u_mac_tx (
 	.clk(CLOCK_50),
 	.rst(rst),
-	.dst_mac(48'),
+	.dst_mac(48'h04_D9_F5_BA_7C_B9),
 	.src_mac(48'h02_00_00_00_00_01),
 	.ethertype(16'hABF9),
 	.data_in(signal_reg),
@@ -229,10 +234,12 @@ mac_tx u_mac_tx (
 // LEDR0 on = link up
 assign LEDR[0]   = link_up;
 assign LEDR[1]   = RMII_TXEN_dummy;
-assign LEDR[8:4] = 8'd0;
+assign LEDR[8] = 0;
+assign LEDR[4] = 0;
+assign LEDR[7:5] = mac_state;
 assign LEDR[2] = |RMII_RXD_vector;
 assign LEDR[3] = RMII_CRS_DV;
-assign LEDR[9] = data_valid_signal;
+assign LEDR[9] = data_valid_latched;
 
 // TX
 assign RMII_TXD0 = RMII_TXD_vector[0];
@@ -243,6 +250,7 @@ assign RMII_TXEN = RMII_TXEN_dummy;
 always @(posedge CLOCK_50) begin
 	if (data_valid_signal) begin
 		data_rx_latch <= data_rx;
+		data_valid_latched <= 1;
 	end 
 
 end 
