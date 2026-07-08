@@ -42,38 +42,44 @@ function [7:0] unscramble_byte;
 	end
 endfunction
 
-// The 18-byte ITCH payload lands at data_in[397:254], upon running further verification
-wire [7:0] msg_type_raw   = data_in[397:390];
-wire [7:0] side_reg_raw   = data_in[389:382];
-wire [7:0] shares_b3_raw  = data_in[381:374];
-wire [7:0] shares_b2_raw  = data_in[373:366];
-wire [7:0] shares_b1_raw  = data_in[365:358];
-wire [7:0] shares_b0_raw  = data_in[357:350];
-wire [7:0] price_b3_raw   = data_in[349:342];
-wire [7:0] price_b2_raw   = data_in[341:334];
-wire [7:0] price_b1_raw   = data_in[333:326];
-wire [7:0] price_b0_raw   = data_in[325:318];
-wire [7:0] stock_b0_raw   = data_in[317:310];
-wire [7:0] stock_b1_raw   = data_in[309:302];
-wire [7:0] stock_b2_raw   = data_in[301:294];
-wire [7:0] stock_b3_raw   = data_in[293:286];
-wire [7:0] stock_b4_raw   = data_in[285:278];
-wire [7:0] stock_b5_raw   = data_in[277:270];
-wire [7:0] stock_b6_raw   = data_in[269:262];
-wire [7:0] stock_b7_raw   = data_in[261:254];
+// The 18-byte ITCH payload lands at data_in[399:256], upon running further verification
+wire [7:0] msg_type_raw   = data_in[399:392];
+wire [7:0] side_reg_raw   = data_in[391:384];
+wire [7:0] shares_b3_raw  = data_in[383:376];
+wire [7:0] shares_b2_raw  = data_in[375:368];
+wire [7:0] shares_b1_raw  = data_in[367:360];
+wire [7:0] shares_b0_raw  = data_in[359:352];
+wire [7:0] price_b3_raw   = data_in[351:344];
+wire [7:0] price_b2_raw   = data_in[343:336];
+wire [7:0] price_b1_raw   = data_in[335:328];
+wire [7:0] price_b0_raw   = data_in[327:320];
+wire [7:0] stock_b0_raw   = data_in[319:312];
+wire [7:0] stock_b1_raw   = data_in[311:304];
+wire [7:0] stock_b2_raw   = data_in[303:296];
+wire [7:0] stock_b3_raw   = data_in[295:288];
+wire [7:0] stock_b4_raw   = data_in[287:280];
+wire [7:0] stock_b5_raw   = data_in[279:272];
+wire [7:0] stock_b6_raw   = data_in[271:264];
+wire [7:0] stock_b7_raw   = data_in[263:256];
+
+always @(posedge clk) begin
+	data_valid_d <= data_valid;
+end
 
 //decode the data_in
-always @(*) begin
-	msg_type   = unscramble_byte(msg_type_raw);
-	side_reg   = unscramble_byte(side_reg_raw);
-	shares_reg = {unscramble_byte(shares_b3_raw), unscramble_byte(shares_b2_raw),
-	              unscramble_byte(shares_b1_raw), unscramble_byte(shares_b0_raw)};
-	price_reg  = {unscramble_byte(price_b3_raw), unscramble_byte(price_b2_raw),
-	              unscramble_byte(price_b1_raw), unscramble_byte(price_b0_raw)};
-	stock      = {unscramble_byte(stock_b0_raw), unscramble_byte(stock_b1_raw),
-	              unscramble_byte(stock_b2_raw), unscramble_byte(stock_b3_raw),
-	              unscramble_byte(stock_b4_raw), unscramble_byte(stock_b5_raw),
-	              unscramble_byte(stock_b6_raw), unscramble_byte(stock_b7_raw)};
+always @(posedge clk) begin
+	if (data_valid_d) begin
+		msg_type   = unscramble_byte(msg_type_raw);
+		side_reg   = unscramble_byte(side_reg_raw);
+		shares_reg = {unscramble_byte(shares_b3_raw), unscramble_byte(shares_b2_raw),
+	                 unscramble_byte(shares_b1_raw), unscramble_byte(shares_b0_raw)};
+		price_reg  = {unscramble_byte(price_b3_raw), unscramble_byte(price_b2_raw),
+						  unscramble_byte(price_b1_raw), unscramble_byte(price_b0_raw)};
+		stock      = {unscramble_byte(stock_b0_raw), unscramble_byte(stock_b1_raw),
+	                 unscramble_byte(stock_b2_raw), unscramble_byte(stock_b3_raw),
+	                 unscramble_byte(stock_b4_raw), unscramble_byte(stock_b5_raw),
+	                 unscramble_byte(stock_b6_raw), unscramble_byte(stock_b7_raw)};
+	end 
 end
 
 //Best Bid Offer tracker
@@ -90,10 +96,6 @@ always @(posedge clk) begin
 			bbo_price_sell <= price_reg;
 		end
 	end
-end
-
-always @(posedge clk) begin
-	data_valid_d <= data_valid;
 end
 
 //Decision point
