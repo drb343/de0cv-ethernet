@@ -8,7 +8,8 @@ module mac_rx (
 	input [11:0] length,
 	input [1:0] rxd,
 	output data_valid,
-	output reg [511:0] data_out
+	output reg [511:0] data_out,
+	output [2:0] state_out
 );
 
 parameter IDLE = 0, PREAMBLE = 1, PAYLOAD = 2;
@@ -71,10 +72,14 @@ assign valid = (state == PAYLOAD);
 
 
 always @(posedge clk) begin
-    if (state == PAYLOAD)
+    if (state == PAYLOAD && CRS_DV)
         data_out <= (data_out << 2) | rxd;
     else if (state == PREAMBLE)
         data_out <= 512'd0;
 end
+
+//Debug state purposes
+assign state_out = state;
+
 endmodule
 `resetall
