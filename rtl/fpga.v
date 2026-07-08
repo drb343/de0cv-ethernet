@@ -13,6 +13,7 @@ module fpga (
     input  wire        RMII_RXD0,
     input  wire        RMII_RXD1,
     input  wire        RMII_CRS_DV,
+	 input  wire [0:0]  KEY,
     inout  wire        RMII_MDIO,
     output wire        RMII_MDC,
 
@@ -61,6 +62,9 @@ wire ready_signal;
 
 //debug state purposes
 wire [2:0] mac_state;
+
+//reset only for itch_parser
+wire itch_rst = (reset_cnt != 8'd0) || ~KEY[0];
 
 //Function to view incoming payloads
 function [6:0] hex_decode;
@@ -200,7 +204,7 @@ mac_rx u_mac_rx(
 
 itch_parser u_itch_parser(
 	.clk(CLOCK_50),
-	.rst(rst),
+	.rst(itch_rst),
 	.data_in(data_rx),
 	.data_valid(data_valid_signal),
 	.signal(signal_reg)
