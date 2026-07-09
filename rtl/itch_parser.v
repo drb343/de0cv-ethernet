@@ -87,7 +87,7 @@ always @(posedge clk) begin
 	if (rst) begin
 		bbo_price_buy <= 32'd0;
 		bbo_price_sell <= 32'hFFFFFFFF;
-	end else begin
+	end else if (data_valid_d) begin
 		//Message type Buy - ASCII
 		if (side_reg == 8'h42 && bbo_price_buy < price_reg) begin
 			bbo_price_buy <= price_reg;
