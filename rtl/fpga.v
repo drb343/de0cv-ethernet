@@ -2,6 +2,19 @@
 `timescale 1ns/1ps
 `default_nettype none
 
+//=============================================================================
+// fpga.v — Top-level: DE0-CV ITCH 5.0 market data parser
+//
+// RMII RX -> mac_rx (deframe, CRC-32) -> itch_parser (decode, BBO, BUY/SELL/HOLD)
+// MDIO -> LAN8720A link status -> LEDR[0]
+//
+// Raw Ethernet, no IP/UDP. Custom ethertype 0xABF9, 18-byte ITCH payload.
+//
+// NOTE: RMII sends each byte as 4 dibits, LSB-first, so the RX shift register
+// holds bit-permuted bytes. itch_parser's unscramble_byte() inverts this —
+// raw data_out is not directly readable.
+//=============================================================================
+
 module fpga (
     input  wire        CLOCK_50,
 
