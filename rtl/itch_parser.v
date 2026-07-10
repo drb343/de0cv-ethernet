@@ -32,6 +32,7 @@ reg [31:0] bbo_price_sell;
 
 reg data_valid_d;
 reg data_valid_d2;
+reg data_valid_d3;
 
 //Function to unscramble the bytes transmitted by Ethernet,
 //RMII sends LSB-first, as RMII captures MSB first
@@ -66,6 +67,7 @@ wire [7:0] stock_b7_raw   = data_in[263:256];
 always @(posedge clk) begin
 	data_valid_d <= data_valid;
 	data_valid_d2 <= data_valid_d;
+	data_valid_d3 <= data_valid_d2;
 end
 
 //decode the data_in
@@ -89,7 +91,7 @@ always @(posedge clk) begin
 	if (rst) begin
 		bbo_price_buy <= 32'd0;
 		bbo_price_sell <= 32'hFFFFFFFF;
-	end else if (data_valid_d) begin
+	end else if (data_valid_d2) begin
 		//Message type Buy - ASCII
 		if (side_reg == 8'h42 && bbo_price_buy < price_reg) begin
 			bbo_price_buy <= price_reg;
@@ -104,7 +106,7 @@ end
 always @(posedge clk) begin
 	if (rst) begin
 		signal <= HOLD;
-	end else if (data_valid_d2) begin
+	end else if (data_valid_d3) begin
 		if (bbo_price_buy < TARGET_BUY) begin
 			signal <= BUY;
 		end else if (bbo_price_sell > TARGET_SELL) begin
