@@ -79,6 +79,10 @@ wire [2:0] mac_state;
 //reset only for itch_parser
 wire itch_rst = (reset_cnt != 8'd0) || ~KEY[0];
 
+// signal stop counter
+reg [1:0] signal_reg_prev;
+reg tx_start_pulse;
+
 //Function to view incoming payloads
 function [6:0] hex_decode;
     input [3:0] nibble;
@@ -224,25 +228,26 @@ itch_parser u_itch_parser(
 );
 
 //When signal is BUY or SELL, get ready to transmit
-always @(*) begin
-	if (signal_reg == 1 || signal_reg == 2) begin
-		start = 1;
-	end else begin
-		start = 0;
-	end 
-
-end 
+always @(posedge CLOCK_50) begin
+    if (itch_rst) begin
+        signal_reg_prev <= 2'b00;
+        tx_start_pulse  <= 1'b0;
+    end else begin
+        signal_reg_prev <= signal_reg;
+        tx_start_pulse  <= (signal_reg != signal_reg_prev) && ready_signal;
+    end
+end
 
 
 mac_tx u_mac_tx (
 	.clk(CLOCK_50),
 	.rst(rst),
-	.dst_mac(48'h04_D9_F5_BA_7C_B9),
+	.dst_mac(48'h02_00_00_00_00_02),
 	.src_mac(48'h02_00_00_00_00_01),
 	.ethertype(16'hABF9),
-	.data_in(signal_reg),
+	.data_in({6'b0, signal_reg}),
 	.length(12'd64),
-	.start(0), //change this to 1 when ready
+	.start(tx_start_pulse),
 	.ready(ready_signal),
 	.txd(RMII_TXD_vector),
 	.tx_en(RMII_TXEN_dummy)
