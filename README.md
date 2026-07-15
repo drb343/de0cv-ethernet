@@ -1,5 +1,15 @@
 # DE0-CV Ethernet
 
+## About
+
+This project implements a NASDAQ ITCH 5.0 market-data parser on a DE0-CV (Cyclone V) FPGA, receiving Ethernet frames directly through a LAN8720A PHY over RMII, no IP/UDP stack, using a custom ethertype (`0xABF9`) The FPGA deframes incoming frames, parses ITCH Add Order messages, tracks the best bid/offer, and outputs a BUY/SELL/HOLD trading signal as a response frame (`0xABFA`). Measured on hardware, the full decision pipeline — from a validated frame arriving to a trading signal being triggered — runs in a fixed 100 ns, with zero measured jitter across independent test runs.
+
+## Setup
+
+## Wireshark
+<img width="1332" height="52" alt="image" src="https://github.com/user-attachments/assets/e18b5b39-f54e-496c-813f-e32da80627e0" />
+The packet being transmitted from PC to FPGA and then back from FPGA to PC.
+
 ## Timing Advantage of DE0-CV
 <img width="920" height="349" alt="image" src="https://github.com/user-attachments/assets/a7f3c595-153b-44a4-8272-8e72c003d1e9" />
 
