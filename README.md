@@ -2,7 +2,7 @@
 
 ## About
 
-This project implements a NASDAQ ITCH 5.0 market-data parser on a DE0-CV (Cyclone V) FPGA, receiving Ethernet frames directly through a LAN8720A PHY over RMII, no IP/UDP stack, using a custom ethertype (`0xABF9`) The FPGA deframes incoming frames, parses ITCH Add Order messages, tracks the best bid/offer, and outputs a BUY/SELL/HOLD trading signal as a response frame (`0xABFA`). Measured on hardware, the full decision pipeline — from a validated frame arriving to a trading signal being triggered — runs in a fixed 100 ns, with zero measured jitter across independent test runs.
+This project implements a NASDAQ ITCH 5.0 market-data parser on a DE0-CV (Cyclone V) FPGA, receiving Ethernet frames directly through a LAN8720A PHY over RMII, no IP/UDP stack, using a custom ethertype (`0xABF9`) The FPGA deframes incoming frames, parses ITCH Add Order messages, tracks the best bid/offer, and outputs a BUY/SELL/HOLD trading signal as a response frame (`0xABFA`). 
 
 ## Setup
 
