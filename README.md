@@ -17,4 +17,8 @@ The packet being transmitted from PC to FPGA and then back from FPGA to PC.
 
 data_valid pulses high at sample 205, once the incoming ITCH frame has passed its CRC-32 check. From there, itch_parser decodes the buffered payload and computes a BUY/SELL/HOLD decision — in this capture, BUY, reflected in signal[1:0] by sample 209. tx_start_pulse, which triggers the response frame, asserts the following cycle at sample 210. Total latency from a validated frame arriving to a trading decision being triggered: 5 samples × 20 ns (50 MHz) = 100 ns.
 
+## UVM
+
+`itch_uvm.sv` contains a UVM module designed for verifying functionality of `itch_parser.v`. It was compiled and ran inside of EDA-Playground, and it passed all of the `BUY`, `SELL`, and `HOLD` tests I ran. Image below shows the output of the scoreboard:
+<img width="1248" height="321" alt="image" src="https://github.com/user-attachments/assets/5589e823-0e97-42fb-aa3a-bb6580af38f2" />
 
