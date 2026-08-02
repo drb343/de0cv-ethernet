@@ -79,7 +79,7 @@ class itch_driver extends uvm_driver #(itch_seq_item);
 	end
   endfunction
 
-  
+  //Virtual interface so that driver can access interface fields
   virtual my_int vif;
 
   virtual function void build_phase(uvm_phase phase);
@@ -127,6 +127,7 @@ class itch_driver extends uvm_driver #(itch_seq_item);
       
       // 4. Tell the sequencer this item is done
       seq_item_port.item_done();
+      repeat(3) @(posedge vif.clk);
     end
   endtask
 endclass
@@ -164,6 +165,7 @@ class itch_monitor extends uvm_monitor;
 
         //wait 3 clock cycles, due to my pipeline delay
         repeat(3) @(posedge vif.clk);
+        #1;
         tr.expected_signal = vif.signal;
 
         mon_analysis_port.write(tr);
@@ -190,7 +192,7 @@ class itch_scoreboard extends uvm_scoreboard;
   
   virtual function void write(itch_seq_item tr);
     if (expected_q[idx] !== tr.expected_signal) begin
-      `uvm_error(get_type_name(), $sformatf("Mismatch at index=%0d: expected=0x%0h 					actual=0x%0h", idx, expected_q[idx], tr.expected_signal))
+      `uvm_error(get_type_name(), $sformatf("Mismatch at index=%0d: expected=0x%0h 						 actual=0x%0h", idx, expected_q[idx], tr.expected_signal))
     end else begin
       `uvm_info(get_type_name(), $sformatf("Signals Matched"), UVM_HIGH)
     end 
@@ -294,4 +296,8 @@ module tb_top;
     run_test("itch_test");
   end 
   
+  initial begin
+    $dumpfile("dump.vcd");
+    $dumpvars(0, tb_top);
+  end
 endmodule
